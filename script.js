@@ -1,16 +1,16 @@
 function readCSVFile() {
     var files = document.querySelector("#file").files; // select file from input field
     if (files.length > 0) {
-      // Selected file
-      var file = files[0];
-      Papa.parse(file, {    // papa.parse library to convert csv data to json data
-        complete: function (results) {
-          createChart(results.data);  //function calling
-        },
-      });
+        // Selected file
+        var file = files[0];
+        Papa.parse(file, {    // papa.parse library to convert csv data to json data
+            complete: function (results) {
+                createChart(results.data);  //function calling
+            },
+        });
     }
-  }
-function createChart(csvdata){
+}
+function createChart(csvdata) {
     function addPopupEvents(chart) {
         const closePopupButtons = document.getElementsByClassName('highcharts-close-popup');
         // Close popup button:
@@ -36,8 +36,8 @@ function createChart(csvdata){
             'click',
             function () {
                 const typeSelect = document.querySelectorAll(
-                        '.highcharts-popup-indicators select'
-                    )[0],
+                    '.highcharts-popup-indicators select'
+                )[0],
                     type = typeSelect.options[typeSelect.selectedIndex].value,
                     period = document.querySelectorAll(
                         '.highcharts-popup-indicators input'
@@ -61,11 +61,11 @@ function createChart(csvdata){
             'click',
             function () {
                 const strokeWidth = parseInt(
-                        document.querySelectorAll(
-                            '.highcharts-popup-annotations input[name="stroke-width"]'
-                        )[0].value,
-                        10
-                    ),
+                    document.querySelectorAll(
+                        '.highcharts-popup-annotations input[name="stroke-width"]'
+                    )[0].value,
+                    10
+                ),
                     strokeColor = document.querySelectorAll(
                         '.highcharts-popup-annotations input[name="stroke"]'
                     )[0].value;
@@ -99,7 +99,7 @@ function createChart(csvdata){
                         }
                     });
                 } else {
-                // Basic annotations:
+                    // Basic annotations:
                     chart.currentAnnotation.update({
                         shapes: [{
                             'stroke-width': strokeWidth,
@@ -117,18 +117,20 @@ function createChart(csvdata){
     }
     // split the data set into ohlc and volume
     const ohlc = [];
+    const deliveryPercentage = [];
     const volume = [];
-        let indexOfDate = csvdata[0].indexOf("Date  ");
-        let indexOfopenPrice = csvdata[0].indexOf("Open Price  ");
-        let indexOfHighPrice = csvdata[0].indexOf("High Price  ");
-        let indexOfLowPrice = csvdata[0].indexOf("Low Price  ");
-        let indexOfClosePrice = csvdata[0].indexOf("Close Price  ");
-        let indexOfDeleviryPer = csvdata[0].indexOf("% Dly Qt to Traded Qty  ");
-        let indexOfStockName = csvdata[0].indexOf("Symbol  ");
-        let stockName = csvdata[1][indexOfStockName];
-        csvdata.shift();//remove first row of csv file
-    for (let i = 0; i < csvdata.length  ; i += 1) {
-        let date = new Date(csvdata[i][indexOfDate]).getTime();
+    let indexOfDate = csvdata[0].indexOf("Date  ");
+    let indexOfopenPrice = csvdata[0].indexOf("Open Price  ");
+    let indexOfHighPrice = csvdata[0].indexOf("High Price  ");
+    let indexOfLowPrice = csvdata[0].indexOf("Low Price  ");
+    let indexOfClosePrice = csvdata[0].indexOf("Close Price  ");
+    let indexOfDeleviryPer = csvdata[0].indexOf("% Dly Qt to Traded Qty  ");
+    let indexOfVolume = csvdata[0].indexOf("Total Traded Quantity  ");
+    let indexOfStockName = csvdata[0].indexOf("Symbol  ");
+    let stockName = csvdata[1][indexOfStockName];
+    csvdata.shift();//remove first row of csv file
+    for (let i = 0; i < csvdata.length; i += 1) {
+        let date = new Date(csvdata[i][indexOfDate]).getTime(); // time in milliseconds
         ohlc.push([   //inserting data in ohlc array
             date, // the date
             Number(csvdata[i][indexOfopenPrice]), // open
@@ -136,9 +138,13 @@ function createChart(csvdata){
             Number(csvdata[i][indexOfLowPrice]), // low
             Number(csvdata[i][indexOfClosePrice]), // close
         ]);
-        volume.push([   //inserting data in volume array
+        deliveryPercentage.push([   //inserting data in delivery percentage array
             date, // the date
             Number(csvdata[i][indexOfDeleviryPer]), // % Dly Qt to Traded Qty
+        ]);
+        volume.push([   //inserting data in volume array
+            date, // the date
+            Number(((csvdata[i][indexOfVolume]).replace(/\,/g,''))/100000), // Total Traded Quantity
         ]);
     }
     Highcharts.stockChart('container', {
@@ -150,21 +156,81 @@ function createChart(csvdata){
             }
         },
         yAxis: [{
+            title: {
+                text: 'Stock Price (In Rs)',
+                style: {
+                    color: 'black',
+                    fontWeight: 'bold'
+                }
+            },
             labels: {
                 align: 'left'
             },
-            height: '80%',
+            height: '60%',
             resize: {
                 enabled: true
             }
         }, {
+            title: {
+                text: 'Dly %',
+                style: {
+                    color: 'black',
+                    fontWeight: 'bold'
+                }
+            },
             labels: {
                 align: 'left'
-            },                  
+            },
+            top: '60%',
+            height: '20%',
+            offset: 0
+        }, {
+            title: {
+                text: 'Volume (In Lacs)',
+                style: {
+                    color: 'black',
+                    fontWeight: 'bold'
+                }
+            },
+            labels: {
+                align: 'left'
+            },
             top: '80%',
             height: '20%',
             offset: 0
         }],
+        tooltip: {
+            shape: 'square',
+            headerShape: 'callout',
+            borderWidth: 0,
+            shadow: false,
+            positioner: function (width, height, point) {
+                const chart = this.chart;
+                let position;
+
+                if (point.isHeader) {
+                    position = {
+                        x: Math.max(
+                            // Left side limit
+                            chart.plotLeft,
+                            Math.min(
+                                point.plotX + chart.plotLeft - width / 2,
+                                // Right side limit
+                                chart.chartWidth - width - chart.marginRight
+                            )
+                        ),
+                        y: point.plotY
+                    };
+                } else {
+                    position = {
+                        x: point.series.chart.plotLeft,
+                        y: point.series.yAxis.top - chart.plotTop
+                    };
+                }
+
+                return position;
+            }
+        },
         navigationBindings: {
             events: {
                 selectButton: function (event) {
@@ -232,9 +298,15 @@ function createChart(csvdata){
         }, {
             type: 'column',
             id: 'aapl-volume',
-            name: `${stockName} % Dly Qt to Traded Qty`,
-            data: volume,
+            name: `${stockName} Dly %`,
+            data: deliveryPercentage,
             yAxis: 1
+        }, {
+            type: 'column',
+            id: 'aapl-volume1',
+            name: `${stockName} Volume`,
+            data: volume,
+            yAxis: 2
         }],
         responsive: {
             rules: [{
