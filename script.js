@@ -129,8 +129,8 @@ function createChart(csvdata) {
     let indexOfStockName = csvdata[0].indexOf("Symbol  ");
     let stockName = csvdata[1][indexOfStockName];
     csvdata.shift();//remove first row of csv file
-    for (let i = 0; i < csvdata.length; i += 1) {
-        let date = new Date(csvdata[i][indexOfDate]).getTime(); // time in milliseconds
+    for (let i = 0; i < csvdata.length; i++) {
+        let date = new Date(csvdata[i][indexOfDate]).getTime()+(24*60*60*1000); // time in milliseconds
         ohlc.push([   //inserting data in ohlc array
             date, // the date
             Number(csvdata[i][indexOfopenPrice]), // open
@@ -144,11 +144,14 @@ function createChart(csvdata) {
         ]);
         volume.push([   //inserting data in volume array
             date, // the date
-            Number(((csvdata[i][indexOfVolume]).replace(/\,/g,''))/100000), // Total Traded Quantity
+            Number(((csvdata[i][indexOfVolume]).replace(/\,/g,''))), // Total Traded Quantity
         ]);
     }
     Highcharts.stockChart('container', {
         chart: {
+            rangeSelector: {
+                enabled: false
+            },
             events: {
                 load: function () {
                     addPopupEvents(this);
